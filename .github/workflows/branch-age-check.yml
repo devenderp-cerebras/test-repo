@@ -78,7 +78,7 @@ jobs:
             }
 
             const tooOld = ageDays > 10;
-            const tooBehind = (behindBy !== null) && (behindBy > 100);
+            const tooBehind = (behindBy !== null) && (behindBy > 1);
 
             if (!tooOld && !tooBehind) {
               core.info(`OK: ageDays=${ageDays}, behindBy=${behindBy}`);
