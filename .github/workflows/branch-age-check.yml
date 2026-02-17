@@ -16,7 +16,7 @@ jobs:
     # - comment body is exactly "test prequeue" or "test pre-q" (case-insensitive, trims whitespace)
     if: >
       github.event.issue.pull_request &&
-      github.actor == 'devenderp'
+      github.actor == 'devenderp-cerebras'
     runs-on: ubuntu-latest
 
     steps:
