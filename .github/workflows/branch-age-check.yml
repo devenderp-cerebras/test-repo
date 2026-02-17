@@ -1,0 +1,106 @@
+name: branch-age-check
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  contents: read
+  pull-requests: write
+  issues: write
+
+jobs:
+  check:
+    # Only run when:
+    # - comment is on a PR
+    # - comment body is exactly "test prequeue" or "test pre-q" (case-insensitive, trims whitespace)
+    if: >
+      github.event.issue.pull_request &&
+      github.actor == 'devenderp'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check base branch age and divergence from master
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const bodyRaw = context.payload.comment?.body ?? '';
+            const body = bodyRaw.trim().toLowerCase();
+
+            const isTrigger = body === 'test prequeue' || body === 'test pre-q';
+            if (!isTrigger) {
+              core.info(`Not a trigger comment. body="${bodyRaw}"`);
+              return;
+            }
+
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number; // PR number for issue_comment on PR
+
+            // Fetch PR
+            const pr = (await github.rest.pulls.get({ owner, repo, pull_number: issue_number })).data;
+
+            const baseRef = pr.base.ref;     // target branch name
+            const prCreatedAt = new Date(pr.created_at);
+            const now = new Date();
+
+            // Allowed target branches: master* or rel-*
+            const allowed = /^master.*$/i.test(baseRef) || /^rel-.*$/i.test(baseRef);
+            if (allowed) {
+              core.info(`Base branch "${baseRef}" is allowed (master*/rel-*). No comment.`);
+              return;
+            }
+
+            const ageDays = Math.floor((now - prCreatedAt) / (1000 * 60 * 60 * 24));
+
+            // Compare master...<baseRef> to see how far base is behind master
+            // Note: if your default main branch is "main" instead of "master", change masterRef below.
+            const masterRef = 'master';
+
+            let behindBy = null;
+            let compareError = null;
+
+            try {
+              const cmp = (await github.rest.repos.compareCommits({
+                owner,
+                repo,
+                base: masterRef,
+                head: baseRef,
+              })).data;
+
+              // cmp.behind_by indicates how many commits HEAD is behind BASE.
+              // But for compareCommits(base=master, head=target):
+              // - behind_by => how many commits target is behind master (missing from master)
+              behindBy = cmp.behind_by;
+            } catch (e) {
+              compareError = e?.message || String(e);
+              core.warning(`compareCommits failed: ${compareError}`);
+            }
+
+            const tooOld = ageDays > 10;
+            const tooBehind = (behindBy !== null) && (behindBy > 100);
+
+            if (!tooOld && !tooBehind) {
+              core.info(`OK: ageDays=${ageDays}, behindBy=${behindBy}`);
+              return;
+            }
+
+            const lines = [];
+            lines.push(`Prequeue trigger detected (\`${context.payload.comment.body}\`).`);
+            lines.push(`PR target branch: \`${baseRef}\` (not \`master*\` or \`rel-*\`).`);
+            lines.push(`PR age: **${ageDays} days** (threshold: > 10).`);
+
+            if (behindBy === null) {
+              lines.push(`Commit distance from \`${masterRef}\`: **unknown** (compare API failed).`);
+            } else {
+              lines.push(`\`${baseRef}\` is **${behindBy} commits behind** \`${masterRef}\` (threshold: > 100).`);
+            }
+
+            lines.push(`Recommendation: retarget/rebase onto \`${masterRef}\` (or a \`rel-*\` branch) before running prequeue.`);
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: lines.join('\n'),
+            });
