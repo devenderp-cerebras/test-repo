@@ -1,0 +1,41 @@
+name: debug-issue-comment-echo
+
+on:
+  issue_comment:
+    types: [created]
+
+permissions:
+  issues: write
+  pull-requests: read
+
+jobs:
+  echo:
+    # Only run if the comment is on a PR (not a plain issue)
+    if: github.event.issue.pull_request
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Reply to the PR comment
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const owner = context.repo.owner;
+            const repo = context.repo.repo;
+            const issue_number = context.issue.number;
+
+            const login = context.payload.comment?.user?.login ?? 'unknown';
+            const body = context.payload.comment?.body ?? '';
+
+            await github.rest.issues.createComment({
+              owner,
+              repo,
+              issue_number,
+              body: [
+                `Ack from workflow \`${context.workflow}\` / job \`${context.job}\`.`,
+                `Commenter: \`${login}\``,
+                `Body (raw):`,
+                '```',
+                body,
+                '```',
+              ].join('\n'),
+            });
