@@ -55,7 +55,7 @@ jobs:
 
             // Compare master...<baseRef> to see how far base is behind master
             // Note: if your default main branch is "main" instead of "master", change masterRef below.
-            const masterRef = 'master';
+            const masterRef = 'main';
 
             let behindBy = null;
             let compareError = null;
