@@ -45,7 +45,7 @@ jobs:
             const now = new Date();
 
             // Allowed target branches: master* or rel-*
-            const allowed = /^master.*$/i.test(baseRef) || /^rel-.*$/i.test(baseRef);
+            const allowed = /^master.*$/i.test(baseRef) || /^rel-.*$/i.test(baseRef) || /^main.*$/i.test(baseRef) ;
             if (allowed) {
               core.info(`Base branch "${baseRef}" is allowed (master*/rel-*). No comment.`);
               return;
