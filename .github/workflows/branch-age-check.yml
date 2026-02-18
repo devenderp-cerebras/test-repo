@@ -14,9 +14,7 @@ jobs:
     # Only run when:
     # - comment is on a PR
     # - comment body is exactly "test prequeue" or "test pre-q" (case-insensitive, trims whitespace)
-    if: >
-      github.event.issue.pull_request &&
-      github.actor == 'devenderp-cerebras'
+    if: github.event.issue.pull_request
     runs-on: ubuntu-latest
 
     steps:
