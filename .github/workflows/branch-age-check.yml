@@ -10,7 +10,7 @@ permissions:
   issues: write
 
 jobs:
-  check:
+  check-branch-age:
     # Only run when:
     # - comment is on a PR
     # - comment body is exactly "test prequeue" or "test pre-q" (case-insensitive, trims whitespace)
