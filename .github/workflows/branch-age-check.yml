@@ -14,7 +14,10 @@ jobs:
     # Only run when:
     # - comment is on a PR
     # - comment body is exactly "test prequeue" or "test pre-q" (case-insensitive, trims whitespace)
-    if: github.event.issue.pull_request
+    
+    if: >
+      github.event.issue.pull_request &&
+      (github.event.comment.body == 'test prequeue' || github.event.comment.body == 'test pre-q')
     runs-on: ubuntu-latest
 
     steps:
